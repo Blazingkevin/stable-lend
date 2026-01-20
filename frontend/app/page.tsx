@@ -10,10 +10,14 @@ import {
   getProtocolStats,
   getCurrentAPY,
   calculateHealthFactor,
+  depositUSDCx,
+  withdrawUSDCx,
+  borrowUSDCx,
+  repayLoan,
   type LoanDetails,
   type ProtocolStats
 } from '@/lib/contract-calls';
-import { formatUSDCx, formatSTX } from '@/lib/constants';
+import { formatUSDCx, formatSTX, parseUSDCx, parseSTX } from '@/lib/constants';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'lend' | 'borrow'>('lend');
@@ -36,6 +40,15 @@ export default function Home() {
     totalLoans: 0,
     utilizationRate: 0,
   });
+  
+  // Form inputs
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [collateralAmount, setCollateralAmount] = useState('');
+  const [borrowAmount, setBorrowAmount] = useState('');
+  
+  // Transaction state
+  const [txPending, setTxPending] = useState(false);
 
   useEffect(() => {
     // Check wallet connection on mount
@@ -94,6 +107,134 @@ export default function Home() {
 
   const handleDisconnect = () => {
     disconnectWallet();
+  };
+
+  // Handle deposit
+  const handleDeposit = async () => {
+    if (!userAddress || !depositAmount || parseFloat(depositAmount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    
+    setTxPending(true);
+    try {
+      const amount = parseUSDCx(depositAmount);
+      await depositUSDCx(amount, userAddress, {
+        onFinish: (data) => {
+          console.log('Deposit successful:', data);
+          setDepositAmount('');
+          setTxPending(false);
+          // Refresh data after a few seconds to allow transaction to confirm
+          setTimeout(() => {
+            if (userAddress) fetchUserData(userAddress);
+          }, 3000);
+          alert(`Deposit transaction submitted! TxID: ${data.txId}`);
+        },
+        onCancel: () => {
+          setTxPending(false);
+        },
+      });
+    } catch (error) {
+      console.error('Deposit error:', error);
+      setTxPending(false);
+      alert('Deposit failed. Please try again.');
+    }
+  };
+  
+  // Handle withdraw
+  const handleWithdraw = async () => {
+    if (!userAddress || !withdrawAmount || parseFloat(withdrawAmount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    
+    const amount = parseUSDCx(withdrawAmount);
+    if (amount > lenderBalance) {
+      alert('Insufficient balance');
+      return;
+    }
+    
+    setTxPending(true);
+    try {
+      await withdrawUSDCx(amount, userAddress, {
+        onFinish: (data) => {
+          console.log('Withdraw successful:', data);
+          setWithdrawAmount('');
+          setTxPending(false);
+          setTimeout(() => {
+            if (userAddress) fetchUserData(userAddress);
+          }, 3000);
+          alert(`Withdrawal transaction submitted! TxID: ${data.txId}`);
+        },
+        onCancel: () => {
+          setTxPending(false);
+        },
+      });
+    } catch (error) {
+      console.error('Withdraw error:', error);
+      setTxPending(false);
+      alert('Withdrawal failed. Please try again.');
+    }
+  };
+  
+  // Handle borrow
+  const handleBorrow = async () => {
+    if (!userAddress || !collateralAmount || !borrowAmount) {
+      alert('Please enter valid amounts');
+      return;
+    }
+    
+    setTxPending(true);
+    try {
+      const collateral = parseSTX(collateralAmount);
+      const borrow = parseUSDCx(borrowAmount);
+      
+      await borrowUSDCx(borrow, collateral, userAddress, {
+        onFinish: (data) => {
+          console.log('Borrow successful:', data);
+          setCollateralAmount('');
+          setBorrowAmount('');
+          setTxPending(false);
+          setTimeout(() => {
+            if (userAddress) fetchUserData(userAddress);
+          }, 3000);
+          alert(`Borrow transaction submitted! TxID: ${data.txId}`);
+        },
+        onCancel: () => {
+          setTxPending(false);
+        },
+      });
+    } catch (error) {
+      console.error('Borrow error:', error);
+      setTxPending(false);
+      alert('Borrow failed. Please try again.');
+    }
+  };
+  
+  // Handle repay
+  const handleRepay = async (loanId: number) => {
+    if (!userAddress) return;
+    
+    setTxPending(true);
+    try {
+      await repayLoan(loanId, userAddress, {
+        onFinish: (data) => {
+          console.log('Repay successful:', data);
+          setTxPending(false);
+          setTimeout(() => {
+            if (userAddress) fetchUserData(userAddress);
+          }, 3000);
+          alert(`Repayment transaction submitted! TxID: ${data.txId}`);
+        },
+        onCancel: () => {
+          setTxPending(false);
+        },
+      });
+    } catch (error) {
+      console.error('Repay error:', error);
+      setTxPending(false);
+      alert('Repayment failed. Please try again.');
+    }
   };
 
   const formatAddress = (address: string) => {
@@ -230,13 +371,30 @@ export default function Home() {
                           <input
                             type="number"
                             placeholder="0.00"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                            value={depositAmount}
+                            onChange={(e) => setDepositAmount(e.target.value)}
+                            disabled={txPending}
                           />
                         </div>
                         
-                        <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                          Deposit USDCx
+                        <button 
+                          onClick={handleDeposit}
+                          disabled={txPending || !depositAmount || parseFloat(depositAmount) <= 0}
+                          className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          {txPending ? 'Processing...' : 'Deposit USDCx'}
                         </button>
+                        
+                        {lenderBalance > BigInt(0) && (
+                          <button 
+                            onClick={handleWithdraw}
+                            disabled={txPending}
+                            className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          >
+                            {txPending ? 'Processing...' : 'Withdraw All'}
+                          </button>
+                        )}
                       </div>
 
                       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
@@ -270,7 +428,10 @@ export default function Home() {
                           <input
                             type="number"
                             placeholder="0.00"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                            value={collateralAmount}
+                            onChange={(e) => setCollateralAmount(e.target.value)}
+                            disabled={txPending}
                           />
                         </div>
                         
@@ -279,13 +440,20 @@ export default function Home() {
                           <input
                             type="number"
                             placeholder="0.00"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                            value={borrowAmount}
+                            onChange={(e) => setBorrowAmount(e.target.value)}
+                            disabled={txPending}
                           />
                           <p className="text-xs text-gray-500 mt-1">Max borrowable based on collateral value</p>
                         </div>
                         
-                        <button className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                          Borrow USDCx
+                        <button 
+                          onClick={handleBorrow}
+                          disabled={txPending || !collateralAmount || !borrowAmount}
+                          className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          {txPending ? 'Processing...' : 'Borrow USDCx'}
                         </button>
                       </div>
 
@@ -336,6 +504,13 @@ export default function Home() {
                                       ⚠️ Warning: Low health factor. Add collateral or repay to avoid liquidation.
                                     </div>
                                   )}
+                                  <button
+                                    onClick={() => handleRepay(loanId)}
+                                    disabled={txPending}
+                                    className="mt-3 w-full px-3 py-2 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                  >
+                                    {txPending ? 'Processing...' : 'Repay Loan'}
+                                  </button>
                                 </div>
                               );
                             })}

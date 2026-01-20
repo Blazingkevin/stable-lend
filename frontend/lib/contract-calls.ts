@@ -232,3 +232,151 @@ export const calculateHealthFactor = (loan: LoanDetails, stxPriceUsdcx: bigint =
 
   return healthFactor;
 };
+
+// ===== WRITE FUNCTIONS (Contract Calls) =====
+
+export interface TransactionCallbacks {
+  onFinish?: (data: any) => void;
+  onCancel?: () => void;
+}
+
+// Write function: Deposit USDCx
+export const depositUSDCx = async (
+  amount: bigint,
+  userAddress: string,
+  callbacks?: TransactionCallbacks
+) => {
+  try {
+    const { openContractCall } = await import('@stacks/connect');
+    const { uintCV, PostConditionMode } = await import('@stacks/transactions');
+    
+    const contract = getLendingPoolContract();
+    const network = getNetwork();
+
+    await openContractCall({
+      contractAddress: contract.address,
+      contractName: contract.name,
+      functionName: 'deposit',
+      functionArgs: [uintCV(amount)],
+      network,
+      postConditionMode: PostConditionMode.Allow,
+      onFinish: (data) => {
+        console.log('Deposit transaction submitted:', data);
+        callbacks?.onFinish?.(data);
+      },
+      onCancel: () => {
+        console.log('Deposit cancelled');
+        callbacks?.onCancel?.();
+      },
+    });
+  } catch (error) {
+    console.error('Error depositing USDCx:', error);
+    throw error;
+  }
+};
+
+// Write function: Withdraw USDCx
+export const withdrawUSDCx = async (
+  amount: bigint,
+  userAddress: string,
+  callbacks?: TransactionCallbacks
+) => {
+  try {
+    const { openContractCall } = await import('@stacks/connect');
+    const { uintCV, PostConditionMode } = await import('@stacks/transactions');
+    
+    const contract = getLendingPoolContract();
+    const network = getNetwork();
+
+    await openContractCall({
+      contractAddress: contract.address,
+      contractName: contract.name,
+      functionName: 'withdraw',
+      functionArgs: [uintCV(amount)],
+      network,
+      postConditionMode: PostConditionMode.Allow, // Allow because we're receiving
+      onFinish: (data) => {
+        console.log('Withdraw transaction submitted:', data);
+        callbacks?.onFinish?.(data);
+      },
+      onCancel: () => {
+        console.log('Withdraw cancelled');
+        callbacks?.onCancel?.();
+      },
+    });
+  } catch (error) {
+    console.error('Error withdrawing USDCx:', error);
+    throw error;
+  }
+};
+
+// Write function: Borrow USDCx
+export const borrowUSDCx = async (
+  borrowAmount: bigint,
+  collateralStx: bigint,
+  userAddress: string,
+  callbacks?: TransactionCallbacks
+) => {
+  try {
+    const { openContractCall } = await import('@stacks/connect');
+    const { uintCV, PostConditionMode } = await import('@stacks/transactions');
+    
+    const contract = getLendingPoolContract();
+    const network = getNetwork();
+
+    await openContractCall({
+      contractAddress: contract.address,
+      contractName: contract.name,
+      functionName: 'borrow',
+      functionArgs: [uintCV(borrowAmount), uintCV(collateralStx)],
+      network,
+      postConditionMode: PostConditionMode.Allow,
+      onFinish: (data) => {
+        console.log('Borrow transaction submitted:', data);
+        callbacks?.onFinish?.(data);
+      },
+      onCancel: () => {
+        console.log('Borrow cancelled');
+        callbacks?.onCancel?.();
+      },
+    });
+  } catch (error) {
+    console.error('Error borrowing USDCx:', error);
+    throw error;
+  }
+};
+
+// Write function: Repay loan
+export const repayLoan = async (
+  loanId: number,
+  userAddress: string,
+  callbacks?: TransactionCallbacks
+) => {
+  try {
+    const { openContractCall } = await import('@stacks/connect');
+    const { uintCV, PostConditionMode } = await import('@stacks/transactions');
+    
+    const contract = getLendingPoolContract();
+    const network = getNetwork();
+
+    await openContractCall({
+      contractAddress: contract.address,
+      contractName: contract.name,
+      functionName: 'repay',
+      functionArgs: [uintCV(loanId)],
+      network,
+      postConditionMode: PostConditionMode.Allow, // Allow because amounts vary with interest
+      onFinish: (data) => {
+        console.log('Repay transaction submitted:', data);
+        callbacks?.onFinish?.(data);
+      },
+      onCancel: () => {
+        console.log('Repay cancelled');
+        callbacks?.onCancel?.();
+      },
+    });
+  } catch (error) {
+    console.error('Error repaying loan:', error);
+    throw error;
+  }
+};
