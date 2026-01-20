@@ -57,7 +57,7 @@ export const BRIDGE_CONFIG = {
   ETHEREUM_DOMAIN: 0,
   
   // Minimum amounts
-  MIN_DEPOSIT: '1.00', // 1 USDC minimum
+  MIN_DEPOSIT: '0.10', // 0.10 USDC minimum (lowered for testing)
   MIN_WITHDRAWAL: '4.80', // 4.80 USDCx minimum (includes fee)
 };
 
