@@ -3,24 +3,90 @@
 import { useState, useEffect } from 'react';
 import { PROTOCOL } from '@/lib/constants';
 import { userSession, connectWallet, disconnectWallet, getUserAddress } from '@/lib/stacks';
+import { 
+  getLenderBalance, 
+  getBorrowerLoans, 
+  getLoanDetails, 
+  getProtocolStats,
+  getCurrentAPY,
+  calculateHealthFactor,
+  type LoanDetails,
+  type ProtocolStats
+} from '@/lib/contract-calls';
+import { formatUSDCx, formatSTX } from '@/lib/constants';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'lend' | 'borrow'>('lend');
   const [isConnected, setIsConnected] = useState(false);
   const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Lender data
+  const [lenderBalance, setLenderBalance] = useState<bigint>(BigInt(0));
+  const [currentAPY, setCurrentAPY] = useState<number>(8.0);
+  
+  // Borrower data
+  const [loanIds, setLoanIds] = useState<number[]>([]);
+  const [loans, setLoans] = useState<LoanDetails[]>([]);
+  
+  // Protocol data
+  const [protocolStats, setProtocolStats] = useState<ProtocolStats>({
+    totalDeposited: BigInt(0),
+    totalBorrowed: BigInt(0),
+    totalLoans: 0,
+    utilizationRate: 0,
+  });
 
   useEffect(() => {
     // Check wallet connection on mount
-    const checkConnection = () => {
+    const checkConnection = async () => {
       const connected = userSession.isUserSignedIn();
       setIsConnected(connected);
       if (connected) {
-        setUserAddress(getUserAddress());
+        const address = getUserAddress();
+        setUserAddress(address);
+        
+        // Fetch user data if connected
+        if (address) {
+          await fetchUserData(address);
+        }
       }
+      setLoading(false);
     };
     
     checkConnection();
   }, []);
+  
+  // Fetch all user-specific data
+  const fetchUserData = async (address: string) => {
+    try {
+      // Fetch lender balance
+      const balance = await getLenderBalance(address);
+      setLenderBalance(balance);
+      
+      // Fetch borrower loans
+      const borrowerLoanIds = await getBorrowerLoans(address);
+      setLoanIds(borrowerLoanIds);
+      
+      // Fetch details for each loan
+      if (borrowerLoanIds.length > 0) {
+        const loanDetails = await Promise.all(
+          borrowerLoanIds.map(id => getLoanDetails(id, address))
+        );
+        setLoans(loanDetails.filter(l => l !== null) as LoanDetails[]);
+      }
+      
+      // Fetch protocol stats
+      const stats = await getProtocolStats(address);
+      setProtocolStats(stats);
+      
+      // Fetch current APY
+      const apy = await getCurrentAPY(address);
+      setCurrentAPY(apy);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   const handleConnect = () => {
     connectWallet();
@@ -77,24 +143,32 @@ export default function Home() {
         {/* Hero Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <p className="text-sm text-gray-600 mb-1">APY</p>
-            <p className="text-3xl font-bold text-blue-600">{PROTOCOL.APY}%</p>
-            <p className="text-xs text-gray-500 mt-1">For Lenders</p>
+            <p className="text-sm text-gray-600 mb-1">Total Value Locked</p>
+            <p className="text-3xl font-bold text-blue-600">
+              {loading ? '...' : formatUSDCx(protocolStats.totalDeposited)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">USDCx Deposited</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <p className="text-sm text-gray-600 mb-1">Collateral Ratio</p>
-            <p className="text-3xl font-bold text-purple-600">{PROTOCOL.COLLATERAL_RATIO}%</p>
-            <p className="text-xs text-gray-500 mt-1">Required</p>
+            <p className="text-sm text-gray-600 mb-1">Total Borrowed</p>
+            <p className="text-3xl font-bold text-purple-600">
+              {loading ? '...' : formatUSDCx(protocolStats.totalBorrowed)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">USDCx Borrowed</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <p className="text-sm text-gray-600 mb-1">Liquidation</p>
-            <p className="text-3xl font-bold text-orange-600">{PROTOCOL.LIQUIDATION_THRESHOLD}%</p>
-            <p className="text-xs text-gray-500 mt-1">Threshold</p>
+            <p className="text-sm text-gray-600 mb-1">Utilization Rate</p>
+            <p className="text-3xl font-bold text-orange-600">
+              {loading ? '...' : `${protocolStats.utilizationRate.toFixed(1)}%`}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Active Loans: {protocolStats.totalLoans}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <p className="text-sm text-gray-600 mb-1">Liquidation Bonus</p>
-            <p className="text-3xl font-bold text-green-600">{PROTOCOL.LIQUIDATION_BONUS}%</p>
-            <p className="text-xs text-gray-500 mt-1">For Liquidators</p>
+            <p className="text-sm text-gray-600 mb-1">Lender APY</p>
+            <p className="text-3xl font-bold text-green-600">
+              {loading ? '...' : `${currentAPY.toFixed(1)}%`}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Current Rate</p>
           </div>
         </div>
 
@@ -167,20 +241,20 @@ export default function Home() {
 
                       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                         <p className="text-sm text-blue-900 font-medium">Your Lending Position</p>
-                        <div className="mt-2 space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-blue-700">Deposited:</span>
-                            <span className="text-blue-900 font-medium">0.00 USDCx</span>
+                        {loading ? (
+                          <div className="mt-2 text-sm text-blue-700">Loading...</div>
+                        ) : (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-blue-700">Total Balance:</span>
+                              <span className="text-blue-900 font-medium">{formatUSDCx(lenderBalance)} USDCx</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-blue-700">Current APY:</span>
+                              <span className="text-blue-900 font-medium">{currentAPY.toFixed(2)}%</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-blue-700">Interest Earned:</span>
-                            <span className="text-blue-900 font-medium">0.00 USDCx</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-blue-700">Total Balance:</span>
-                            <span className="text-blue-900 font-medium">0.00 USDCx</span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -216,8 +290,57 @@ export default function Home() {
                       </div>
 
                       <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-purple-900 font-medium">Your Loans</p>
-                        <p className="text-sm text-purple-700 mt-2">No active loans</p>
+                        <p className="text-sm text-purple-900 font-medium mb-3">Your Loans</p>
+                        {loading ? (
+                          <p className="text-sm text-purple-700">Loading...</p>
+                        ) : loans.length === 0 ? (
+                          <p className="text-sm text-purple-700">No active loans</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {loans.map((loan, index) => {
+                              const loanId = loanIds[index];
+                              const healthFactor = calculateHealthFactor(loan);
+                              const totalOwed = loan.borrowedAmount + loan.accruedInterest;
+                              const healthColor = healthFactor > 1.5 ? 'text-green-600' : 
+                                                 healthFactor > 1.2 ? 'text-yellow-600' : 
+                                                 'text-red-600';
+                              
+                              return (
+                                <div key={loanId} className="p-3 bg-white rounded-lg border border-purple-200">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <span className="text-sm font-medium text-purple-900">Loan #{loanId}</span>
+                                    <span className={`text-xs font-semibold ${healthColor}`}>
+                                      Health: {healthFactor.toFixed(2)}x
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1 text-xs">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Collateral:</span>
+                                      <span className="text-gray-900">{formatSTX(loan.collateralAmount)} STX</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Borrowed:</span>
+                                      <span className="text-gray-900">{formatUSDCx(loan.borrowedAmount)} USDCx</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Interest:</span>
+                                      <span className="text-gray-900">{formatUSDCx(loan.accruedInterest)} USDCx</span>
+                                    </div>
+                                    <div className="flex justify-between font-medium">
+                                      <span className="text-gray-600">Total Owed:</span>
+                                      <span className="text-purple-900">{formatUSDCx(totalOwed)} USDCx</span>
+                                    </div>
+                                  </div>
+                                  {healthFactor < 1.3 && (
+                                    <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
+                                      ⚠️ Warning: Low health factor. Add collateral or repay to avoid liquidation.
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

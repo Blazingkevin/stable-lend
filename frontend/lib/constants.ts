@@ -28,18 +28,20 @@ export const PROTOCOL = {
 };
 
 // Format helpers
-export const formatUSDCx = (amount: number): string => {
-  return (amount / 1_000000).toFixed(2);
+export const formatUSDCx = (amount: bigint | number): string => {
+  const num = typeof amount === 'bigint' ? Number(amount) : amount;
+  return (num / 1_000000).toFixed(2);
 };
 
-export const formatSTX = (amount: number): string => {
-  return (amount / 1_000000).toFixed(2);
+export const formatSTX = (amount: bigint | number): string => {
+  const num = typeof amount === 'bigint' ? Number(amount) : amount;
+  return (num / 1_000000).toFixed(2);
 };
 
-export const parseUSDCx = (amount: string): number => {
-  return Math.floor(parseFloat(amount) * 1_000000);
+export const parseUSDCx = (amount: string): bigint => {
+  return BigInt(Math.floor(parseFloat(amount) * 1_000000));
 };
 
-export const parseSTX = (amount: string): number => {
-  return Math.floor(parseFloat(amount) * 1_000000);
+export const parseSTX = (amount: string): bigint => {
+  return BigInt(Math.floor(parseFloat(amount) * 1_000000));
 };
