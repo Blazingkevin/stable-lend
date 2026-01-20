@@ -84,7 +84,7 @@
 )
 
 ;; Data vars
-(define-data-var next-loan-id uint u1)
+(define-data-var next-loan-id uint u0)
 (define-data-var total-deposits uint u0)
 (define-data-var total-borrowed uint u0)
 (define-data-var total-interest-paid uint u0)
