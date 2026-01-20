@@ -14,6 +14,37 @@ import {
 import { sepolia } from 'viem/chains';
 import { bytes32FromBytes, remoteRecipientCoder } from './bridge-helpers';
 
+// Type guard for Ethereum provider
+interface EthereumProvider {
+  request: (args: { method: string; params?: any[] }) => Promise<any>;
+  on?: (eventName: string, handler: (...args: any[]) => void) => void;
+  removeListener?: (eventName: string, handler: (...args: any[]) => void) => void;
+  isMetaMask?: boolean;
+}
+
+/**
+ * Get Ethereum provider (handles multiple wallet extensions)
+ */
+function getEthereumProvider(): EthereumProvider | null {
+  if (typeof window === 'undefined') return null;
+  
+  const windowEth = (window as any).ethereum;
+  
+  // Check if MetaMask is available in the providers array (when multiple wallets installed)
+  if (windowEth?.providers) {
+    const metamask = windowEth.providers.find((p: any) => p.isMetaMask);
+    if (metamask) return metamask as EthereumProvider;
+  }
+  
+  // Check if window.ethereum is MetaMask directly
+  if (windowEth?.isMetaMask) {
+    return windowEth as EthereumProvider;
+  }
+  
+  // Fallback to window.ethereum if it exists
+  return windowEth ? (windowEth as EthereumProvider) : null;
+}
+
 // Configuration for testnet
 export const BRIDGE_CONFIG = {
   // Ethereum Sepolia testnet
@@ -132,22 +163,25 @@ async function ensureSepoliaNetwork(ethereum: any): Promise<void> {
  * Connect to Ethereum wallet (MetaMask)
  */
 export async function connectEthereumWallet(): Promise<BridgeClients> {
-  // Check if MetaMask is installed
-  if (typeof window === 'undefined' || !window.ethereum) {
-    throw new Error('MetaMask not installed. Please install MetaMask to bridge assets.');
+  const ethereum = getEthereumProvider();
+  
+  if (!ethereum) {
+    throw new Error('MetaMask not installed. Please install MetaMask from https://metamask.io/download/');
+  }
+
+  // Check if MetaMask is installed (not just any ethereum provider)
+  if (!ethereum.isMetaMask) {
+    throw new Error('MetaMask not detected. Please install MetaMask extension.');
   }
 
   try {
-    // Type assertion for MetaMask provider
-    const ethereum = window.ethereum as any;
-
     // Ensure we're on Sepolia network
     await ensureSepoliaNetwork(ethereum);
 
-    // Request account access using the correct method
+    // Request accounts from MetaMask
     const accounts = await ethereum.request({
       method: 'eth_requestAccounts',
-    });
+    }) as string[];
 
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
       throw new Error('No Ethereum accounts found. Please unlock MetaMask.');
@@ -159,7 +193,7 @@ export async function connectEthereumWallet(): Promise<BridgeClients> {
     const walletClient = createWalletClient({
       account: address,
       chain: sepolia,
-      transport: custom(ethereum),
+      transport: custom(ethereum as any),
     });
 
     // Create public client for reading data
@@ -171,9 +205,14 @@ export async function connectEthereumWallet(): Promise<BridgeClients> {
     return { walletClient, publicClient, address };
   } catch (error: any) {
     console.error('MetaMask connection error:', error);
+    
+    // Handle specific error cases
     if (error.code === 4001) {
-      throw new Error('MetaMask connection rejected by user');
+      throw new Error('Connection request was rejected by user');
+    } else if (error.code === -32002) {
+      throw new Error('Connection request is already pending. Please check MetaMask.');
     }
+    
     throw new Error(error.message || 'Failed to connect to MetaMask');
   }
 }
