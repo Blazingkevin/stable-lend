@@ -10,3 +10,8 @@ coverage
 *.info
 costs-reports.json
 node_modules
+
+# Local documentation
+UI_CONTRACT_ANALYSIS.md
+TESTNET_DEPLOYMENT_READINESS.md
+DEPLOYMENT_CHECKLIST.md
