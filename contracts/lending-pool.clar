@@ -8,8 +8,9 @@
 
 ;; USDCx Token Contract
 ;; For local testing: .mock-usdcx
-;; For mainnet deployment: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
-(define-constant usdcx-contract .mock-usdcx)
+;; For testnet deployment: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
+;; For mainnet deployment: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx
+(define-constant usdcx-contract 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx)
 
 ;; Contract owner
 (define-constant contract-owner tx-sender)

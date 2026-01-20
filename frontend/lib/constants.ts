@@ -9,7 +9,7 @@ export const NETWORK: 'testnet' | 'mainnet' = 'testnet'; // Change to 'mainnet' 
 export const CONTRACTS = {
   testnet: {
     lendingPool: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.lending-pool', // TODO: Deploy to testnet and update
-    usdcx: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.mock-usdcx', // TODO: Use real USDCx address after deployment
+    usdcx: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx', // Real USDCx testnet contract (Circle-backed)
   },
   mainnet: {
     lendingPool: 'SP...lending-pool', // TODO: Deploy to mainnet and update
