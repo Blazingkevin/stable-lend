@@ -1,49 +1,33 @@
 'use client';
 
-import { AppConfig, UserSession, showConnect } from '@stacks/connect';
-import { 
-  uintCV, 
-  principalCV,
-  PostConditionMode,
-} from '@stacks/transactions';
 import { NETWORK, CONTRACTS } from './constants';
 
-// App configuration
-const appConfig = new AppConfig(['store_write', 'publish_data']);
-export const userSession = new UserSession({ appConfig });
+// Placeholder functions until we properly set up @stacks/connect
+export const userSession = {
+  isUserSignedIn: () => false,
+  loadUserData: () => null,
+  signUserOut: () => {},
+};
 
 // Get network config string
 export const getNetworkMode = () => {
   return NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
 };
 
-// Connect wallet
+// Connect wallet - placeholder
 export const connectWallet = () => {
-  showConnect({
-    appDetails: {
-      name: 'StableLend',
-      icon: '/logo.png',
-    },
-    redirectTo: '/',
-    onFinish: () => {
-      window.location.reload();
-    },
-    userSession,
-  });
+  alert('Wallet connection coming soon! Install Hiro Wallet or Leather.');
 };
 
-// Disconnect wallet
+// Disconnect wallet - placeholder
 export const disconnectWallet = () => {
-  userSession.signUserOut();
-  window.location.reload();
+  if (typeof window !== 'undefined') {
+    window.location.reload();
+  }
 };
 
-// Get current user address
+// Get current user address - placeholder
 export const getUserAddress = (): string | null => {
-  if (userSession.isUserSignedIn()) {
-    const userData = userSession.loadUserData();
-    return userData.profile.stxAddress.testnet;
-  }
   return null;
 };
 
