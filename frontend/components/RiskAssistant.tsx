@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Sparkles, X, MessageCircle, Send, ShieldAlert, Loader2 } from 'lucide-react';
 
 const RiskAssistant: React.FC = () => {
@@ -28,16 +28,13 @@ const RiskAssistant: React.FC = () => {
 
     try {
       // Fix: Ensure initialization uses process.env.API_KEY directly as per guidelines
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: userMessage,
-        config: {
-          systemInstruction: "You are an expert DeFi risk advisor for StableLend, a lending protocol on the Stacks blockchain. You explain complex lending mechanics like health factors, LTV (Loan to Value), and USDCx bridging (via xReserve) in simple, professional terms. Keep responses concise and focused on risk management and protocol education. Never give financial advice, only technical explanations of the protocol."
-        }
-      });
-
-      const aiText = response.text || "I'm having trouble connecting to the network. Please try again later.";
+      const ai = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+      const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+      
+      const prompt = `You are an expert DeFi risk advisor for StableLend, a lending protocol on the Stacks blockchain. You explain complex lending mechanics like health factors, LTV (Loan to Value), and USDCx bridging in simple, professional terms. Keep responses concise and focused on risk management and protocol education. Never give financial advice, only technical explanations of the protocol.\n\nUser question: ${userMessage}`;
+      
+      const response = await model.generateContent(prompt);
+      const aiText = response.response.text() || "I'm having trouble connecting to the network. Please try again later.";
       setMessages(prev => [...prev, { role: 'ai', content: aiText }]);
     } catch (error) {
       console.error("AI Error:", error);

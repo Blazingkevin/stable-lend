@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, ShieldAlert, Zap } from 'lucide-react';
-import { View } from '../types';
+import { View } from '@/app/types';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
-import { HISTORY_DATA } from '../constants';
+import { HISTORY_DATA } from '@/app/constants';
 
 interface DashboardProps {
   onAction: (view: View) => void;

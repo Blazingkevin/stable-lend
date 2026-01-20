@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { ASSETS } from '../constants';
-import { Asset } from '../types';
+import { ASSETS } from '@/app/constants';
+import { Asset } from '@/app/types';
 import { LoanDetails } from '@/lib/contract-calls';
 // Add missing TrendingUp import
 import { Info, Plus, MoveRight, Wallet, TrendingUp } from 'lucide-react';

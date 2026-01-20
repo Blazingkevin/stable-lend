@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { ASSETS } from '../constants';
+import { ASSETS } from '@/app/constants';
 import { ProtocolStats as ProtocolStatsType } from '@/lib/contract-calls';
 import { formatUSDCx } from '@/lib/constants';
 

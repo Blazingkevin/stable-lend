@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LayoutDashboard, Coins, HandCoins, BarChart3, ShieldCheck, ArrowLeftRight } from 'lucide-react';
-import { View } from '../types';
+import { View } from '@/app/types';
 
 interface SidebarProps {
   activeView: View;
