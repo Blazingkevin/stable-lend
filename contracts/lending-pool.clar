@@ -89,6 +89,16 @@
 (define-data-var total-borrowed uint u0)
 (define-data-var total-interest-paid uint u0)
 
+;; Track unique lenders and borrowers for statistics
+(define-map unique-lenders { lender: principal } { active: bool })
+(define-map unique-borrowers { borrower: principal } { active: bool })
+(define-data-var total-lenders uint u0)
+(define-data-var total-borrowers uint u0)
+
+;; Track 24h volume (simplified: last 144 blocks)
+(define-data-var volume-24h uint u0)
+(define-data-var last-volume-reset-block uint u0)
+
 ;; ============================================
 ;; PRIVATE HELPER FUNCTIONS
 ;; ============================================
@@ -155,6 +165,42 @@
   )
 )
 
+;; Update 24h volume (reset if needed)
+(define-private (update-volume (amount uint))
+  (let (
+    (blocks-since-reset (- block-height (var-get last-volume-reset-block)))
+  )
+    (if (>= blocks-since-reset blocks-per-day)
+      (begin
+        (var-set volume-24h amount)
+        (var-set last-volume-reset-block block-height)
+      )
+      (var-set volume-24h (+ (var-get volume-24h) amount))
+    )
+  )
+)
+
+;; Track unique user (lender or borrower)
+(define-private (track-unique-lender (lender principal))
+  (if (is-none (map-get? unique-lenders { lender: lender }))
+    (begin
+      (map-set unique-lenders { lender: lender } { active: true })
+      (var-set total-lenders (+ (var-get total-lenders) u1))
+    )
+    true
+  )
+)
+
+(define-private (track-unique-borrower (borrower principal))
+  (if (is-none (map-get? unique-borrowers { borrower: borrower }))
+    (begin
+      (map-set unique-borrowers { borrower: borrower } { active: true })
+      (var-set total-borrowers (+ (var-get total-borrowers) u1))
+    )
+    true
+  )
+)
+
 ;; ============================================
 ;; PUBLIC FUNCTIONS - LENDING
 ;; ============================================
@@ -173,6 +219,12 @@
       (as-contract tx-sender) 
       none
     ))
+    
+    ;; Track unique lender
+    (track-unique-lender tx-sender)
+    
+    ;; Update 24h volume
+    (update-volume amount)
     
     (match existing-deposit
       deposit-data
@@ -224,6 +276,9 @@
   )
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (<= amount total-balance) err-insufficient-balance)
+    
+    ;; Update 24h volume
+    (update-volume amount)
     
     (if (is-eq amount total-balance)
       (map-delete lenders { lender: lender })
@@ -284,6 +339,12 @@
       borrower
       none
     )))
+    
+    ;; Track unique borrower
+    (track-unique-borrower borrower)
+    
+    ;; Update 24h volume
+    (update-volume borrow-amount)
     
     (map-set loans
       { loan-id: loan-id }
@@ -474,7 +535,11 @@
     utilization-rate: (if (> (var-get total-deposits) u0)
                         (/ (* (var-get total-borrowed) u10000) (var-get total-deposits))
                         u0),
-    next-loan-id: (var-get next-loan-id)
+    next-loan-id: (var-get next-loan-id),
+    total-lenders: (var-get total-lenders),
+    total-borrowers: (var-get total-borrowers),
+    active-users: (+ (var-get total-lenders) (var-get total-borrowers)),
+    volume-24h: (var-get volume-24h)
   })
 )
 
@@ -491,5 +556,19 @@
 ;; Get current APY
 (define-read-only (get-current-apy)
   (ok annual-interest-rate-bps)
+)
+
+;; Get total value locked (TVL) in USD (6 decimals)
+(define-read-only (get-tvl-usd)
+  (ok (var-get total-deposits))
+)
+
+;; Get liquidation stats
+(define-read-only (get-liquidation-stats)
+  (ok {
+    liquidation-threshold: liquidation-threshold,
+    liquidation-bonus: liquidation-bonus-bps,
+    total-liquidations: u0  ;; Can be tracked if needed
+  })
 )
 

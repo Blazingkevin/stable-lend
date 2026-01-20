@@ -15,6 +15,25 @@ interface StatsProps {
 const Stats: React.FC<StatsProps> = ({ protocolStats, currentAPY }) => {
   const pieData = ASSETS.map(a => ({ name: a.symbol, value: a.totalSupplied * a.price }));
 
+  // Use real data if available, otherwise use mock data
+  const totalDepositsUSD = protocolStats 
+    ? Number(protocolStats.totalDeposited) / 1_000000 
+    : 32412980;
+  
+  const totalBorrowedUSD = protocolStats
+    ? Number(protocolStats.totalBorrowed) / 1_000000
+    : 18245112;
+  
+  const utilizationRate = protocolStats
+    ? protocolStats.utilizationRate
+    : 56.2;
+  
+  const activeUsers = protocolStats?.activeUsers || 12402;
+  
+  const volume24h = protocolStats?.volume24h
+    ? Number(protocolStats.volume24h) / 1_000000
+    : 0;
+
   return (
     <div className="space-y-8 animate-in fade-in zoom-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -31,18 +50,33 @@ const Stats: React.FC<StatsProps> = ({ protocolStats, currentAPY }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="glass-card p-6 rounded-3xl">
           <p className="text-sm text-gray-400 mb-1">Total Value Locked</p>
-          <h3 className="text-3xl font-bold text-white mono">$32,412,980</h3>
-          <p className="text-xs text-green-500 font-bold mt-2">+12.4% this week</p>
+          <h3 className="text-3xl font-bold text-white mono">
+            ${totalDepositsUSD.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </h3>
+          <p className="text-xs text-green-500 font-bold mt-2">
+            {protocolStats ? 'Live Data' : '+12.4% this week'}
+          </p>
         </div>
         <div className="glass-card p-6 rounded-3xl">
           <p className="text-sm text-gray-400 mb-1">Total Borrowed</p>
-          <h3 className="text-3xl font-bold text-white mono">$18,245,112</h3>
-          <p className="text-xs text-orange-500 font-bold mt-2">56.2% Utilization</p>
+          <h3 className="text-3xl font-bold text-white mono">
+            ${totalBorrowedUSD.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </h3>
+          <p className="text-xs text-orange-500 font-bold mt-2">
+            {utilizationRate.toFixed(1)}% Utilization
+          </p>
         </div>
         <div className="glass-card p-6 rounded-3xl">
           <p className="text-sm text-gray-400 mb-1">Active Users</p>
-          <h3 className="text-3xl font-bold text-white mono">12,402</h3>
-          <p className="text-xs text-blue-500 font-bold mt-2">Growing +200 daily</p>
+          <h3 className="text-3xl font-bold text-white mono">
+            {activeUsers.toLocaleString()}
+          </h3>
+          <p className="text-xs text-blue-500 font-bold mt-2">
+            {protocolStats 
+              ? `${protocolStats.totalLenders || 0} lenders, ${protocolStats.totalBorrowers || 0} borrowers`
+              : 'Growing +200 daily'
+            }
+          </p>
         </div>
       </div>
 

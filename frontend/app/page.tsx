@@ -46,9 +46,10 @@ export default function Home() {
         const address = getUserAddress();
         setUserAddress(address);
 
-        if (address) {
-          await fetchUserData(address);
-        }
+        // TODO: Uncomment after deploying contracts to testnet
+        // if (address) {
+        //   await fetchUserData(address);
+        // }
       }
       setLoading(false);
     };
@@ -57,6 +58,12 @@ export default function Home() {
   }, []);
 
   const fetchUserData = async (address: string) => {
+    // TODO: Enable this after contracts are deployed to testnet
+    console.log('fetchUserData called for address:', address);
+    console.log('Skipping data fetch until contracts are deployed');
+    return;
+    
+    /* Uncomment after deployment:
     try {
       const balance = await getLenderBalance(address);
       setLenderBalance(balance);
@@ -79,6 +86,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
+    */
   };
 
   const handleConnect = () => {

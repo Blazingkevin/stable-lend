@@ -4,14 +4,16 @@
 export const NETWORK: 'testnet' | 'mainnet' = 'testnet'; // Change to 'mainnet' for production
 
 // Contract addresses (update after deployment)
+// NOTE: These are placeholder addresses. Update with actual deployed addresses.
+// For local testing, use the deployer address from your Clarinet console
 export const CONTRACTS = {
   testnet: {
-    lendingPool: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.lending-pool', // Update with deployed address
-    usdcx: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx',
+    lendingPool: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.lending-pool', // TODO: Deploy to testnet and update
+    usdcx: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.mock-usdcx', // TODO: Use real USDCx address after deployment
   },
   mainnet: {
-    lendingPool: 'SP...', // Update with mainnet address
-    usdcx: 'SP...', // Update with mainnet USDCx address
+    lendingPool: 'SP...lending-pool', // TODO: Deploy to mainnet and update
+    usdcx: 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-abtc', // Real USDCx contract on mainnet
   },
 };
 

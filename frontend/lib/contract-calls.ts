@@ -114,6 +114,10 @@ export interface ProtocolStats {
   totalBorrowed: bigint;
   totalLoans: number;
   utilizationRate: number; // percentage
+  totalLenders?: number;
+  totalBorrowers?: number;
+  activeUsers?: number;
+  volume24h?: bigint;
 }
 
 export const getProtocolStats = async (callerAddress: string): Promise<ProtocolStats> => {
@@ -133,9 +137,9 @@ export const getProtocolStats = async (callerAddress: string): Promise<ProtocolS
     const jsonResult = cvToJSON(result);
     if (jsonResult.success && jsonResult.value) {
       const stats = jsonResult.value;
-      const totalDeposited = BigInt(stats['total-deposited'].value);
+      const totalDeposited = BigInt(stats['total-deposits'].value);
       const totalBorrowed = BigInt(stats['total-borrowed'].value);
-      const totalLoans = Number(stats['total-loans'].value);
+      const totalLoans = Number(stats['next-loan-id']?.value || stats['total-loans']?.value || 0);
       
       // Calculate utilization rate
       const utilizationRate = totalDeposited > BigInt(0)
@@ -147,6 +151,10 @@ export const getProtocolStats = async (callerAddress: string): Promise<ProtocolS
         totalBorrowed,
         totalLoans,
         utilizationRate,
+        totalLenders: Number(stats['total-lenders']?.value || 0),
+        totalBorrowers: Number(stats['total-borrowers']?.value || 0),
+        activeUsers: Number(stats['active-users']?.value || 0),
+        volume24h: BigInt(stats['volume-24h']?.value || 0),
       };
     }
     return {
@@ -154,6 +162,10 @@ export const getProtocolStats = async (callerAddress: string): Promise<ProtocolS
       totalBorrowed: BigInt(0),
       totalLoans: 0,
       utilizationRate: 0,
+      totalLenders: 0,
+      totalBorrowers: 0,
+      activeUsers: 0,
+      volume24h: BigInt(0),
     };
   } catch (error) {
     console.error('Error fetching protocol stats:', error);
@@ -162,6 +174,10 @@ export const getProtocolStats = async (callerAddress: string): Promise<ProtocolS
       totalBorrowed: BigInt(0),
       totalLoans: 0,
       utilizationRate: 0,
+      totalLenders: 0,
+      totalBorrowers: 0,
+      activeUsers: 0,
+      volume24h: BigInt(0),
     };
   }
 };

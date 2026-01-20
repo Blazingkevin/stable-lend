@@ -53,6 +53,10 @@ describe("StableLend - Lending Pool Tests", () => {
           "total-borrowed": Cl.uint(0),
           "total-interest-paid": Cl.uint(0),
           "utilization-rate": Cl.uint(0),
+          "total-lenders": Cl.uint(0),
+          "total-borrowers": Cl.uint(0),
+          "active-users": Cl.uint(0),
+          "volume-24h": Cl.uint(0),
         })
       );
     });
