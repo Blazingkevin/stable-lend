@@ -216,7 +216,8 @@
 ;; Withdraw USDCx plus earned interest
 (define-public (withdraw (amount uint))
   (let (
-    (deposit-data (unwrap! (map-get? lenders { lender: tx-sender }) err-not-authorized))
+    (lender tx-sender)
+    (deposit-data (unwrap! (map-get? lenders { lender: lender }) err-not-authorized))
     (blocks-elapsed (- block-height (get last-claim-block deposit-data)))
     (interest-earned (calculate-deposit-interest (get deposited-amount deposit-data) blocks-elapsed))
     (total-balance (+ (get deposited-amount deposit-data) interest-earned))
@@ -225,9 +226,9 @@
     (asserts! (<= amount total-balance) err-insufficient-balance)
     
     (if (is-eq amount total-balance)
-      (map-delete lenders { lender: tx-sender })
+      (map-delete lenders { lender: lender })
       (map-set lenders
-        { lender: tx-sender }
+        { lender: lender }
         {
           deposited-amount: (- total-balance amount),
           deposit-block: (get deposit-block deposit-data),
@@ -240,7 +241,7 @@
       transfer 
       amount 
       tx-sender 
-      tx-sender
+      lender
       none
     )))
     
@@ -265,6 +266,7 @@
 ;; Borrow USDCx by locking STX as collateral
 (define-public (borrow (borrow-amount uint) (collateral-stx uint))
   (let (
+    (borrower tx-sender)
     (loan-id (var-get next-loan-id))
     (collateral-value (calculate-collateral-value collateral-stx))
     (required-collateral (/ (* borrow-amount collateral-ratio) u100))
@@ -273,20 +275,20 @@
     (asserts! (> collateral-stx u0) err-invalid-amount)
     (asserts! (>= collateral-value required-collateral) err-insufficient-collateral)
     
-    (try! (stx-transfer? collateral-stx tx-sender (as-contract tx-sender)))
+    (try! (stx-transfer? collateral-stx borrower (as-contract tx-sender)))
     
     (try! (as-contract (contract-call? .mock-usdcx 
       transfer 
       borrow-amount 
       tx-sender 
-      tx-sender
+      borrower
       none
     )))
     
     (map-set loans
       { loan-id: loan-id }
       {
-        borrower: tx-sender,
+        borrower: borrower,
         collateral-amount: collateral-stx,
         borrowed-amount: borrow-amount,
         borrow-block: block-height,
@@ -296,7 +298,7 @@
       }
     )
     
-    (add-loan-to-borrower tx-sender loan-id)
+    (add-loan-to-borrower borrower loan-id)
     
     (var-set next-loan-id (+ loan-id u1))
     (var-set total-borrowed (+ (var-get total-borrowed) borrow-amount))
@@ -304,7 +306,7 @@
     (print {
       event: "borrow",
       loan-id: loan-id,
-      borrower: tx-sender,
+      borrower: borrower,
       borrow-amount: borrow-amount,
       collateral-stx: collateral-stx,
       health-factor: (calculate-health-factor collateral-stx borrow-amount),
