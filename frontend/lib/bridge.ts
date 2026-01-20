@@ -85,6 +85,50 @@ export interface BridgeClients {
 }
 
 /**
+ * Check and switch to Sepolia network if needed
+ */
+async function ensureSepoliaNetwork(ethereum: any): Promise<void> {
+  try {
+    const chainId = await ethereum.request({ method: 'eth_chainId' });
+    const sepoliaChainId = '0xaa36a7'; // 11155111 in hex
+    
+    if (chainId !== sepoliaChainId) {
+      try {
+        await ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: sepoliaChainId }],
+        });
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902) {
+          await ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: sepoliaChainId,
+                chainName: 'Sepolia Test Network',
+                nativeCurrency: {
+                  name: 'Sepolia ETH',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://ethereum-sepolia.publicnode.com'],
+                blockExplorerUrls: ['https://sepolia.etherscan.io'],
+              },
+            ],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Network switch error:', error);
+    throw new Error('Please switch MetaMask to Sepolia testnet');
+  }
+}
+
+/**
  * Connect to Ethereum wallet (MetaMask)
  */
 export async function connectEthereumWallet(): Promise<BridgeClients> {
@@ -93,33 +137,45 @@ export async function connectEthereumWallet(): Promise<BridgeClients> {
     throw new Error('MetaMask not installed. Please install MetaMask to bridge assets.');
   }
 
-  const ethereum = window.ethereum as any;
+  try {
+    // Type assertion for MetaMask provider
+    const ethereum = window.ethereum as any;
 
-  // Request account access
-  const accounts = await ethereum.request({
-    method: 'eth_requestAccounts',
-  }) as `0x${string}`[];
+    // Ensure we're on Sepolia network
+    await ensureSepoliaNetwork(ethereum);
 
-  if (!accounts || accounts.length === 0) {
-    throw new Error('No Ethereum accounts found. Please unlock MetaMask.');
+    // Request account access using the correct method
+    const accounts = await ethereum.request({
+      method: 'eth_requestAccounts',
+    });
+
+    if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+      throw new Error('No Ethereum accounts found. Please unlock MetaMask.');
+    }
+
+    const address = accounts[0] as `0x${string}`;
+
+    // Create wallet client with MetaMask
+    const walletClient = createWalletClient({
+      account: address,
+      chain: sepolia,
+      transport: custom(ethereum),
+    });
+
+    // Create public client for reading data
+    const publicClient = createPublicClient({
+      chain: sepolia,
+      transport: http(BRIDGE_CONFIG.ETH_RPC_URL),
+    });
+
+    return { walletClient, publicClient, address };
+  } catch (error: any) {
+    console.error('MetaMask connection error:', error);
+    if (error.code === 4001) {
+      throw new Error('MetaMask connection rejected by user');
+    }
+    throw new Error(error.message || 'Failed to connect to MetaMask');
   }
-
-  const address = accounts[0];
-
-  // Create wallet client with MetaMask
-  const walletClient = createWalletClient({
-    account: address,
-    chain: sepolia,
-    transport: custom(ethereum),
-  });
-
-  // Create public client for reading data
-  const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http(BRIDGE_CONFIG.ETH_RPC_URL),
-  });
-
-  return { walletClient, publicClient, address };
 }
 
 /**
@@ -270,4 +326,5 @@ export async function getTransactionStatus(
     return { status: 'pending' };
   }
 }
+
 
