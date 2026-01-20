@@ -12,12 +12,18 @@ export const userSession = {
   isUserSignedIn: () => {
     if (typeof window === 'undefined') return false;
     try {
-      // Check @stacks/connect localStorage
       const storage = localStorage.getItem('@stacks/connect');
       if (!storage) return false;
       const data = JSON.parse(storage);
-      return data?.addresses?.stx?.length > 0;
-    } catch {
+      
+      // Check if we have any Stacks addresses (mainnet or testnet)
+      const stxAddresses = data?.addresses?.filter((a: any) => 
+        a.purpose === 'stacks' || a.addressType === 'stacks'
+      ) || [];
+      
+      return stxAddresses.length > 0;
+    } catch (error) {
+      console.error('Error checking connection:', error);
       return false;
     }
   },
@@ -28,17 +34,24 @@ export const userSession = {
       if (!storage) return null;
       const data = JSON.parse(storage);
       
-      // Find testnet address (starts with ST)
-      const stxAddresses = data?.addresses?.stx || [];
-      const testnetAddr = stxAddresses.find((a: { address: string }) => 
-        a.address.startsWith('ST')
-      );
-      const address = testnetAddr?.address || stxAddresses[0]?.address;
+      // Find Stacks address (can be mainnet SP or testnet ST)
+      const stxAddresses = data?.addresses?.filter((a: any) => 
+        a.purpose === 'stacks' || a.addressType === 'stacks'
+      ) || [];
+      
+      if (stxAddresses.length === 0) return null;
+      
+      // Get the address
+      const address = stxAddresses[0]?.address;
+      
+      // Determine if it's mainnet or testnet based on prefix
+      const network = address?.startsWith('SP') ? 'mainnet' : 'testnet';
       
       return {
         profile: {
           stxAddress: {
-            [NETWORK]: address || '',
+            mainnet: network === 'mainnet' ? address : '',
+            testnet: network === 'testnet' ? address : '',
           },
         },
       };
@@ -58,36 +71,35 @@ export const connectWallet = async () => {
   if (typeof window === 'undefined') return;
   
   try {
-    // Use the modern connect API from @stacks/connect
-    const { connect } = await import('@stacks/connect');
+    // Use request API which is more reliable
+    const { request } = await import('@stacks/connect');
     
-    console.log('Opening wallet connection...');
+    console.log('Requesting wallet addresses...');
     
-    // This opens the wallet selection modal and handles the connection
-    const result = await connect();
+    // Request addresses using getAddresses method
+    const result = await request('getAddresses');
     
-    console.log('Connection result:', result);
+    console.log('Address result:', result);
     
-    // Check if addresses were returned
+    // Store addresses in the expected format
     if (result?.addresses) {
-      console.log('Addresses received:', result.addresses);
-      
-      // Manually store in localStorage with the correct format
       const storage = {
         addresses: result.addresses,
         version: '1.0.0',
       };
       
       localStorage.setItem('@stacks/connect', JSON.stringify(storage));
+      console.log('Stored addresses:', storage);
       
       // Reload to update UI
       window.location.reload();
     } else {
-      console.error('No addresses in connection result');
+      console.error('No addresses returned');
+      alert('Failed to get addresses from wallet');
     }
   } catch (error) {
     console.error('Error connecting wallet:', error);
-    alert('Failed to connect wallet. Please try again.');
+    alert('Failed to connect wallet. Please make sure your wallet extension is installed and unlocked.');
   }
 };
 
