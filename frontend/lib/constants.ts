@@ -8,7 +8,7 @@ export const NETWORK: 'testnet' | 'mainnet' = 'testnet'; // Change to 'mainnet' 
 // For local testing, use the deployer address from your Clarinet console
 export const CONTRACTS = {
   testnet: {
-    lendingPool: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.lending-pool', // TODO: Deploy to testnet and update
+    lendingPool: 'ST1WGWDX3W41ET9N3H5TWM3A4B9BTFPDV2SYP6JYX.lending-pool', // Deployed to testnet!
     usdcx: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx', // Real USDCx testnet contract (Circle-backed)
   },
   mainnet: {
