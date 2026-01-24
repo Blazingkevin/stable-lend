@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Wallet, Bell, Search, ChevronDown, Home, LogOut, Copy, Check } from 'lucide-react';
+import { Wallet, Bell, Search, ChevronDown, Home, LogOut, Copy, Check, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
@@ -45,23 +45,34 @@ const Header: React.FC<HeaderProps> = ({ isConnected, onConnect, onDisconnect, u
   };
 
   return (
-    <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-[#030712]/50 backdrop-blur-md sticky top-0 z-30">
-      <div className="flex items-center flex-1 max-w-xl gap-3">
+    <header className="h-16 lg:h-20 border-b border-white/5 flex items-center justify-between px-4 lg:px-8 bg-[#030712]/50 backdrop-blur-md sticky top-0 z-30">
+      {/* Left side - Logo on mobile, search on desktop */}
+      <div className="flex items-center gap-2 lg:gap-3 flex-1 lg:max-w-xl">
+        {/* Mobile: Show logo */}
+        <div className="flex lg:hidden items-center gap-2">
+          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/20">
+            <ShieldCheck className="text-white w-5 h-5" />
+          </div>
+          <span className="text-lg font-bold tracking-tight text-white">StableLend</span>
+        </div>
+
+        {/* Desktop: Show home button and search */}
         <button
           onClick={() => router.push('/')}
-          className="p-2.5 rounded-full bg-white/5 hover:bg-orange-500/10 hover:text-orange-400 transition-colors flex items-center gap-2 text-gray-400 text-sm font-semibold"
+          className="hidden lg:flex p-2.5 rounded-full bg-white/5 hover:bg-orange-500/10 hover:text-orange-400 transition-colors items-center gap-2 text-gray-400 text-sm font-semibold"
           title="Back to Landing Page"
         >
           <Home className="w-5 h-5" />
         </button>
         
-        {/* Testnet Indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
+        {/* Testnet Indicator - smaller on mobile */}
+        <div className="hidden sm:flex items-center gap-2 px-2 lg:px-3 py-1 lg:py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
-          <span className="text-yellow-500 text-xs font-bold uppercase tracking-wider">Testnet</span>
+          <span className="text-yellow-500 text-[10px] lg:text-xs font-bold uppercase tracking-wider">Testnet</span>
         </div>
         
-        <div className="relative w-full group">
+        {/* Search - hidden on mobile */}
+        <div className="hidden lg:block relative w-full group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
           <input
             type="text"
@@ -71,18 +82,20 @@ const Header: React.FC<HeaderProps> = ({ isConnected, onConnect, onDisconnect, u
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <button className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors relative">
-          <Bell className="w-5 h-5 text-gray-400" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-[#030712]" />
+      {/* Right side */}
+      <div className="flex items-center gap-2 lg:gap-4">
+        {/* Bell - hidden on small mobile */}
+        <button className="hidden sm:block p-2 lg:p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors relative">
+          <Bell className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
+          <span className="absolute top-1.5 lg:top-2 right-1.5 lg:right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-[#030712]" />
         </button>
 
-        <div className="h-8 w-px bg-white/5 mx-2" />
+        <div className="hidden sm:block h-8 w-px bg-white/5 mx-1 lg:mx-2" />
 
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => isConnected ? setShowDropdown(!showDropdown) : onConnect()}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all shadow-xl shadow-orange-500/10 ${
+            className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-6 py-2 lg:py-2.5 rounded-full font-semibold text-xs lg:text-sm transition-all shadow-xl shadow-orange-500/10 ${
               isConnected
                 ? 'bg-gray-800 border border-white/10 hover:border-orange-500/30'
                 : 'bg-orange-500 hover:bg-orange-600 text-white'
@@ -92,12 +105,13 @@ const Header: React.FC<HeaderProps> = ({ isConnected, onConnect, onDisconnect, u
               <>
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
                 <span className="mono">{formatAddress(userAddress)}</span>
-                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 lg:w-4 lg:h-4 text-gray-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
               </>
             ) : (
               <>
                 <Wallet className="w-4 h-4" />
-                Connect Wallet
+                <span className="hidden sm:inline">Connect Wallet</span>
+                <span className="sm:hidden">Connect</span>
               </>
             )}
           </button>

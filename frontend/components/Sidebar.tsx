@@ -18,21 +18,64 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate }) => {
   ];
 
   return (
-    <aside className="w-64 border-r border-white/5 bg-gray-900/40 backdrop-blur-md hidden lg:flex flex-col z-20">
-      <div className="p-8">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <ShieldCheck className="text-white w-6 h-6" />
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="w-64 border-r border-white/5 bg-gray-900/40 backdrop-blur-md hidden lg:flex flex-col z-20">
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <ShieldCheck className="text-white w-6 h-6" />
+            </div>
+            <button 
+              onClick={() => onNavigate(View.Dashboard)}
+              className="text-xl font-bold tracking-tight text-white text-left hover:text-orange-400 transition-colors"
+            >
+              StableLend
+            </button>
           </div>
-          <button 
-            onClick={() => onNavigate(View.Dashboard)}
-            className="text-xl font-bold tracking-tight text-white text-left hover:text-orange-400 transition-colors"
-          >
-            StableLend
-          </button>
+
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onNavigate(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                    isActive 
+                      ? 'bg-orange-500/10 text-orange-500' 
+                      : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : 'group-hover:scale-110 transition-transform'}`} />
+                  <span className="font-medium">{item.label}</span>
+                  {isActive && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        <nav className="space-y-2">
+        <div className="mt-auto p-6">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500/20 to-purple-500/10 border border-white/5 space-y-3">
+            <p className="text-sm font-semibold text-gray-200">USDCx Liquidity</p>
+            <p className="text-xs text-gray-400 leading-relaxed">StableLend uses Circle xReserve for cross-chain USDCx bridging.</p>
+            <button 
+              onClick={() => onNavigate(View.Bridge)}
+              className="text-xs text-orange-400 font-medium hover:underline flex items-center gap-1"
+            >
+              Bridge Assets &rarr;
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#030712]/95 backdrop-blur-md border-t border-white/10 px-2 pb-safe">
+        <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -40,36 +83,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate }) => {
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
                   isActive 
-                    ? 'bg-orange-500/10 text-orange-500' 
-                    : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                    ? 'text-orange-500' 
+                    : 'text-gray-500'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : 'group-hover:scale-110 transition-transform'}`} />
-                <span className="font-medium">{item.label}</span>
-                {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500" />
-                )}
+                <Icon className={`w-5 h-5 ${isActive ? 'text-orange-500' : ''}`} />
+                <span className="text-[10px] font-medium">{item.label.split(' ')[0]}</span>
               </button>
             );
           })}
-        </nav>
-      </div>
-
-      <div className="mt-auto p-6">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500/20 to-purple-500/10 border border-white/5 space-y-3">
-          <p className="text-sm font-semibold text-gray-200">USDCx Liquidity</p>
-          <p className="text-xs text-gray-400 leading-relaxed">StableLend uses Circle xReserve for cross-chain USDCx bridging.</p>
-          <button 
-            onClick={() => onNavigate(View.Bridge)}
-            className="text-xs text-orange-400 font-medium hover:underline flex items-center gap-1"
-          >
-            Bridge Assets &rarr;
-          </button>
         </div>
-      </div>
-    </aside>
+      </nav>
+    </>
   );
 };
 

@@ -241,7 +241,7 @@ function HomeContent() {
           <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
             <Header isConnected={isConnected} onConnect={handleConnect} onDisconnect={handleDisconnect} userAddress={userAddress} />
 
-            <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8">
               <div className="max-w-7xl mx-auto space-y-8 pb-12">
                 {renderView()}
               </div>
