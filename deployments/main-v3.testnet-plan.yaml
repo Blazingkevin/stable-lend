@@ -1,6 +1,6 @@
 ---
 id: 0
-name: Testnet deployment
+name: Testnet deployment - Main Contract v3 (with fixes)
 network: testnet
 stacks-node: "https://api.testnet.hiro.so"
 bitcoin-node: "http://blockstack:blockstacksystem@bitcoind.testnet.stacks.co:18332"
@@ -9,9 +9,9 @@ plan:
     - id: 0
       transactions:
         - contract-publish:
-            contract-name: stablelend-pool-v2
+            contract-name: stablelend-pool-v3
             expected-sender: ST1WGWDX3W41ET9N3H5TWM3A4B9BTFPDV2SYP6JYX
-            cost: 44417019
+            cost: 50000000
             path: contracts/stablelend-pool-v2.clar
             anchor-block-only: true
             clarity-version: 2

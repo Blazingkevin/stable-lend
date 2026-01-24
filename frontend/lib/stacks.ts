@@ -61,7 +61,16 @@ export const userSession = {
   },
   signUserOut: () => {
     if (typeof window !== 'undefined') {
+      // Clear all Stacks-related storage to force fresh connection
       localStorage.removeItem('@stacks/connect');
+      localStorage.removeItem('stacks-session');
+      localStorage.removeItem('blockstack-session');
+      // Clear any wallet-specific cached sessions
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('stacks') || key.includes('hiro') || key.includes('xverse') || key.includes('leather')) {
+          localStorage.removeItem(key);
+        }
+      });
     }
   },
 };
@@ -71,35 +80,51 @@ export const connectWallet = async () => {
   if (typeof window === 'undefined') return;
   
   try {
-    // Use request API which is more reliable
-    const { request } = await import('@stacks/connect');
+    const { showConnect } = await import('@stacks/connect');
     
-    console.log('Requesting wallet addresses...');
-    
-    // Request addresses using getAddresses method
-    const result = await request('getAddresses');
-    
-    console.log('Address result:', result);
-    
-    // Store addresses in the expected format
-    if (result?.addresses) {
-      const storage = {
-        addresses: result.addresses,
-        version: '1.0.0',
-      };
-      
-      localStorage.setItem('@stacks/connect', JSON.stringify(storage));
-      console.log('Stored addresses:', storage);
-      
-      // Reload to update UI
-      window.location.reload();
-    } else {
-      console.error('No addresses returned');
-      alert('Failed to get addresses from wallet');
-    }
+    showConnect({
+      appDetails: {
+        name: 'StableLend',
+        icon: window.location.origin + '/logo.png',
+      },
+      onFinish: (data) => {
+        const addresses = data.authResponsePayload?.profile?.stxAddress;
+        
+        if (addresses) {
+          const storage = {
+            addresses: [
+              { 
+                address: addresses.testnet || addresses.mainnet,
+                purpose: 'stacks',
+              }
+            ],
+            version: '1.0.0',
+          };
+          
+          localStorage.setItem('@stacks/connect', JSON.stringify(storage));
+          window.location.reload();
+        }
+      },
+      onCancel: () => {},
+    });
   } catch (error) {
-    console.error('Error connecting wallet:', error);
-    alert('Failed to connect wallet. Please make sure your wallet extension is installed and unlocked.');
+    try {
+      const { request } = await import('@stacks/connect');
+      
+      const result = await request('getAddresses');
+      
+      if (result?.addresses) {
+        const storage = {
+          addresses: result.addresses,
+          version: '1.0.0',
+        };
+        
+        localStorage.setItem('@stacks/connect', JSON.stringify(storage));
+        window.location.reload();
+      }
+    } catch {
+      alert('Failed to connect wallet. Please make sure your wallet extension is installed and unlocked.');
+    }
   }
 };
 

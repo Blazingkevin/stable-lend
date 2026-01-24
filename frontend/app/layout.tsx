@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "StableLend - First Lending on Bitcoin L2",
-  description: "Lend USDCx and earn 8% APY, or borrow USDCx with STX collateral. The first lending protocol on Stacks.",
+  description: "Lend USDCx and earn up to 8% APY (utilization-based), or borrow USDCx with STX collateral. The first production-ready lending protocol on Stacks.",
 };
 
 export default function RootLayout({

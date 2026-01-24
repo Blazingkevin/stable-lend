@@ -366,4 +366,23 @@ export async function getTransactionStatus(
   }
 }
 
+/**
+ * Pad an Ethereum address to 32 bytes for the burn function
+ */
+export function padEthAddressTo32Bytes(ethAddress: string): string {
+  // Remove 0x prefix if present
+  const cleanAddress = ethAddress.startsWith('0x') ? ethAddress.slice(2) : ethAddress;
+  // Pad to 32 bytes (64 hex chars) with leading zeros
+  return '0x' + cleanAddress.padStart(64, '0');
+}
+
+/**
+ * USDCx contract addresses on Stacks testnet
+ */
+export const STACKS_USDCX_CONFIG = {
+  CONTRACT_ADDRESS: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
+  CONTRACT_NAME: 'usdcx-v1',
+  TOKEN_NAME: 'usdcx-token',
+};
+
 

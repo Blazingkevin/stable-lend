@@ -1,43 +1,44 @@
-;; StableLend - USDCx Lending Protocol
-;; The first lending protocol on Bitcoin L2 (Stacks)
-;; Allows users to lend USDCx and earn interest, or borrow USDCx against STX collateral
+;; StableLend Pool - Bitcoin L2 Lending Protocol
+;; Production-ready lending protocol on Stacks blockchain
+;; Lend USDCx and earn interest. Borrow USDCx against STX collateral.
 
 ;; ============================================
 ;; CONSTANTS
 ;; ============================================
 
-;; USDCx Token Contract
-;; For local testing: .mock-usdcx
-;; For testnet deployment: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
-;; For mainnet deployment: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx
-(define-constant usdcx-contract 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx)
-
 ;; Contract owner
 (define-constant contract-owner tx-sender)
 
-;; Interest rate: 8% APY (fixed for MVP)
-;; Represented as basis points (800 = 8.00%)
+;; Burn address for validation
+(define-constant zero-address 'SP000000000000000000002Q6VF78)
+
+;; Interest rate: 8% APY
 (define-constant annual-interest-rate-bps u800)
 
-;; Collateral ratio: 150% (user must deposit 1.5x value of what they borrow)
+;; Collateral ratio: 150%
 (define-constant collateral-ratio u150)
 
-;; Liquidation threshold: 120% (if collateral drops below 1.2x debt, can be liquidated)
+;; Liquidation threshold: 120%
 (define-constant liquidation-threshold u120)
 
-;; Liquidation bonus: 5% (liquidator gets 5% extra collateral as reward)
+;; Liquidation bonus: 5%
 (define-constant liquidation-bonus-bps u500)
 
-;; Time constants (Stacks block time ~10 minutes)
-(define-constant blocks-per-year u52560) ;; ~365 days * 144 blocks/day
+;; Protocol fee: 10%
+(define-constant protocol-fee-bps u1000)
+
+;; Max protocol fee: 100%
+(define-constant max-valid-protocol-fee u10000)
+
+;; Time constants
+(define-constant blocks-per-year u52560)
 (define-constant blocks-per-day u144)
 
-;; STX price in USD (6 decimals: 2250000 = $2.25)
-;; In production, this would come from an oracle
+;; STX price in USD (6 decimals) - will use oracle in production
 (define-constant stx-price-usd u2250000)
 
-;; Price decimals (for precision)
-(define-constant price-decimals u1000000) ;; 6 decimals
+;; Price decimals
+(define-constant price-decimals u1000000)
 
 ;; Error codes
 (define-constant err-not-authorized (err u401))
@@ -49,6 +50,11 @@
 (define-constant err-invalid-amount (err u407))
 (define-constant err-not-liquidatable (err u408))
 (define-constant err-too-many-loans (err u409))
+(define-constant err-invalid-address (err u410))
+(define-constant err-protocol-paused (err u411))
+(define-constant err-supply-cap-exceeded (err u412))
+(define-constant err-borrow-cap-exceeded (err u413))
+(define-constant err-cannot-liquidate-self (err u414))
 
 ;; ============================================
 ;; DATA MAPS & VARS
@@ -100,16 +106,42 @@
 (define-data-var volume-24h uint u0)
 (define-data-var last-volume-reset-block uint u0)
 
+;; Protocol revenue tracking
+(define-data-var protocol-revenue-accumulated uint u0)
+(define-data-var protocol-treasury principal contract-owner)
+
+;; Pause mechanism for emergencies
+(define-data-var protocol-paused bool false)
+
+;; Supply and borrow caps for risk management
+(define-data-var supply-cap uint u100000000000)
+(define-data-var borrow-cap uint u50000000000)
+
 ;; ============================================
 ;; PRIVATE HELPER FUNCTIONS
 ;; ============================================
 
-;; Calculate interest earned on deposit
+;; Calculate utilization rate (scaled by 10000)
+(define-private (get-utilization-rate)
+  (let (
+    (total-deps (var-get total-deposits))
+    (total-borr (var-get total-borrowed))
+  )
+    (if (is-eq total-deps u0)
+      u0
+      (/ (* total-borr u10000) total-deps)
+    )
+  )
+)
+
+;; Calculate interest earned on deposit (utilization-based)
 (define-private (calculate-deposit-interest
     (principal-amount uint)
     (blocks-elapsed uint))
   (let (
-    (interest-numerator (* (* principal-amount annual-interest-rate-bps) blocks-elapsed))
+    (utilization (get-utilization-rate))
+    (effective-rate-bps (/ (* annual-interest-rate-bps utilization) u10000))
+    (interest-numerator (* (* principal-amount effective-rate-bps) blocks-elapsed))
     (interest-denominator (* u10000 blocks-per-year))
   )
     (/ interest-numerator interest-denominator)
@@ -120,15 +152,20 @@
 (define-private (calculate-loan-interest
     (borrowed-amount uint)
     (blocks-elapsed uint))
-  (calculate-deposit-interest borrowed-amount blocks-elapsed)
+  (let (
+    (interest-numerator (* (* borrowed-amount annual-interest-rate-bps) blocks-elapsed))
+    (interest-denominator (* u10000 blocks-per-year))
+  )
+    (/ interest-numerator interest-denominator)
+  )
 )
 
-;; Calculate collateral value in USD (6 decimals)
+;; Calculate collateral value in USD
 (define-private (calculate-collateral-value (collateral-stx uint))
   (/ (* collateral-stx stx-price-usd) u1000000)
 )
 
-;; Calculate health factor (scaled by 100)
+;; Calculate health factor
 (define-private (calculate-health-factor
     (collateral-stx uint)
     (debt-amount uint))
@@ -166,7 +203,7 @@
   )
 )
 
-;; Update 24h volume (reset if needed)
+;; Update 24h volume
 (define-private (update-volume (amount uint))
   (let (
     (blocks-since-reset (- block-height (var-get last-volume-reset-block)))
@@ -181,7 +218,7 @@
   )
 )
 
-;; Track unique user (lender or borrower)
+;; Track unique lenders and borrowers
 (define-private (track-unique-lender (lender principal))
   (if (is-none (map-get? unique-lenders { lender: lender }))
     (begin
@@ -203,6 +240,50 @@
 )
 
 ;; ============================================
+;; PUBLIC FUNCTIONS - EMERGENCY CONTROLS
+;; ============================================
+
+;; Pause protocol
+(define-public (pause-protocol)
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-not-authorized)
+    (var-set protocol-paused true)
+    (print { event: "protocol-paused", block: block-height })
+    (ok true)
+  )
+)
+
+;; Unpause protocol
+(define-public (unpause-protocol)
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-not-authorized)
+    (var-set protocol-paused false)
+    (print { event: "protocol-unpaused", block: block-height })
+    (ok true)
+  )
+)
+
+;; Update supply cap
+(define-public (update-supply-cap (new-cap uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-not-authorized)
+    (var-set supply-cap new-cap)
+    (print { event: "supply-cap-updated", new-cap: new-cap, block: block-height })
+    (ok true)
+  )
+)
+
+;; Update borrow cap
+(define-public (update-borrow-cap (new-cap uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-not-authorized)
+    (var-set borrow-cap new-cap)
+    (print { event: "borrow-cap-updated", new-cap: new-cap, block: block-height })
+    (ok true)
+  )
+)
+
+;; ============================================
 ;; PUBLIC FUNCTIONS - LENDING
 ;; ============================================
 
@@ -210,34 +291,25 @@
 (define-public (deposit (amount uint))
   (let (
     (existing-deposit (map-get? lenders { lender: tx-sender }))
+    (new-total-deposits (+ (var-get total-deposits) amount))
   )
+    ;; Validate inputs and protocol state
+    (asserts! (not (var-get protocol-paused)) err-protocol-paused)
     (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (<= new-total-deposits (var-get supply-cap)) err-supply-cap-exceeded)
     
-    (try! (contract-call? .mock-usdcx 
-      transfer 
-      amount 
-      tx-sender 
-      (as-contract tx-sender) 
-      none
-    ))
-    
-    ;; Track unique lender
-    (track-unique-lender tx-sender)
-    
-    ;; Update 24h volume
-    (update-volume amount)
-    
+    ;; Update state before external calls
     (match existing-deposit
       deposit-data
       (let (
         (blocks-elapsed (- block-height (get last-claim-block deposit-data)))
         (interest-earned (calculate-deposit-interest (get deposited-amount deposit-data) blocks-elapsed))
-        (new-total (+ (+ (get deposited-amount deposit-data) interest-earned) amount))
+        (new-balance (+ (+ (get deposited-amount deposit-data) interest-earned) amount))
       )
         (map-set lenders
           { lender: tx-sender }
           {
-            deposited-amount: new-total,
+            deposited-amount: new-balance,
             deposit-block: (get deposit-block deposit-data),
             last-claim-block: block-height
           }
@@ -253,7 +325,18 @@
       )
     )
     
-    (var-set total-deposits (+ (var-get total-deposits) amount))
+    (var-set total-deposits new-total-deposits)
+    (track-unique-lender tx-sender)
+    (update-volume amount)
+    
+    ;; Transfer tokens from user
+    (try! (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
+      transfer 
+      amount 
+      tx-sender 
+      (as-contract tx-sender) 
+      none
+    ))
     
     (print {
       event: "deposit",
@@ -275,12 +358,12 @@
     (interest-earned (calculate-deposit-interest (get deposited-amount deposit-data) blocks-elapsed))
     (total-balance (+ (get deposited-amount deposit-data) interest-earned))
   )
+    ;; Validate inputs and protocol state
+    (asserts! (not (var-get protocol-paused)) err-protocol-paused)
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (<= amount total-balance) err-insufficient-balance)
     
-    ;; Update 24h volume
-    (update-volume amount)
-    
+    ;; Update state before external calls
     (if (is-eq amount total-balance)
       (map-delete lenders { lender: lender })
       (map-set lenders
@@ -293,15 +376,17 @@
       )
     )
     
-    (try! (as-contract (contract-call? .mock-usdcx 
+    (var-set total-deposits (- (var-get total-deposits) amount))
+    (update-volume amount)
+    
+    ;; Transfer tokens to user
+    (try! (as-contract (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
       transfer 
       amount 
       tx-sender 
       lender
       none
     )))
-    
-    (var-set total-deposits (- (var-get total-deposits) amount))
     
     (print {
       event: "withdraw",
@@ -326,27 +411,16 @@
     (loan-id (var-get next-loan-id))
     (collateral-value (calculate-collateral-value collateral-stx))
     (required-collateral (/ (* borrow-amount collateral-ratio) u100))
+    (new-total-borrowed (+ (var-get total-borrowed) borrow-amount))
   )
+    ;; Validate inputs and protocol state
+    (asserts! (not (var-get protocol-paused)) err-protocol-paused)
     (asserts! (> borrow-amount u0) err-invalid-amount)
     (asserts! (> collateral-stx u0) err-invalid-amount)
     (asserts! (>= collateral-value required-collateral) err-insufficient-collateral)
+    (asserts! (<= new-total-borrowed (var-get borrow-cap)) err-borrow-cap-exceeded)
     
-    (try! (stx-transfer? collateral-stx borrower (as-contract tx-sender)))
-    
-    (try! (as-contract (contract-call? .mock-usdcx 
-      transfer 
-      borrow-amount 
-      tx-sender 
-      borrower
-      none
-    )))
-    
-    ;; Track unique borrower
-    (track-unique-borrower borrower)
-    
-    ;; Update 24h volume
-    (update-volume borrow-amount)
-    
+    ;; Update state before external calls
     (map-set loans
       { loan-id: loan-id }
       {
@@ -361,9 +435,21 @@
     )
     
     (add-loan-to-borrower borrower loan-id)
-    
     (var-set next-loan-id (+ loan-id u1))
-    (var-set total-borrowed (+ (var-get total-borrowed) borrow-amount))
+    (var-set total-borrowed new-total-borrowed)
+    (track-unique-borrower borrower)
+    (update-volume borrow-amount)
+    
+    ;; Transfer collateral and loan amount
+    (try! (stx-transfer? collateral-stx borrower (as-contract tx-sender)))
+    
+    (try! (as-contract (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
+      transfer 
+      borrow-amount 
+      tx-sender 
+      borrower
+      none
+    )))
     
     (print {
       event: "borrow",
@@ -385,12 +471,31 @@
     (loan-data (unwrap! (map-get? loans { loan-id: loan-id }) err-loan-not-found))
     (blocks-elapsed (- block-height (get last-interest-block loan-data)))
     (interest-owed (calculate-loan-interest (get borrowed-amount loan-data) blocks-elapsed))
-    (total-owed (+ (get borrowed-amount loan-data) (get accumulated-interest loan-data) interest-owed))
+    (total-interest (+ (get accumulated-interest loan-data) interest-owed))
+    (total-owed (+ (get borrowed-amount loan-data) total-interest))
+    
+    ;; Split interest: 90% to lenders, 10% to protocol
+    (protocol-fee (/ (* total-interest protocol-fee-bps) u10000))
+    (lender-share (- total-interest protocol-fee))
   )
+    ;; Validate inputs and protocol state
+    (asserts! (not (var-get protocol-paused)) err-protocol-paused)
     (asserts! (is-eq tx-sender (get borrower loan-data)) err-not-authorized)
     (asserts! (get active loan-data) err-loan-not-found)
     
-    (try! (contract-call? .mock-usdcx 
+    ;; Update state before external calls
+    (map-set loans
+      { loan-id: loan-id }
+      (merge loan-data { active: false })
+    )
+    
+    (var-set total-borrowed (- (var-get total-borrowed) (get borrowed-amount loan-data)))
+    (var-set total-interest-paid (+ (var-get total-interest-paid) total-interest))
+    (var-set total-deposits (+ (var-get total-deposits) lender-share))
+    (var-set protocol-revenue-accumulated (+ (var-get protocol-revenue-accumulated) protocol-fee))
+    
+    ;; Transfer repayment and return collateral
+    (try! (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
       transfer 
       total-owed 
       tx-sender 
@@ -400,20 +505,14 @@
     
     (try! (as-contract (stx-transfer? (get collateral-amount loan-data) tx-sender (get borrower loan-data))))
     
-    (map-set loans
-      { loan-id: loan-id }
-      (merge loan-data { active: false })
-    )
-    
-    (var-set total-borrowed (- (var-get total-borrowed) (get borrowed-amount loan-data)))
-    (var-set total-interest-paid (+ (var-get total-interest-paid) interest-owed))
-    
     (print {
       event: "repay",
       loan-id: loan-id,
       borrower: tx-sender,
       repaid-amount: total-owed,
-      interest-paid: interest-owed,
+      total-interest: total-interest,
+      protocol-fee: protocol-fee,
+      lender-share: lender-share,
       block: block-height
     })
     
@@ -433,20 +532,18 @@
     (interest-owed (calculate-loan-interest (get borrowed-amount loan-data) blocks-elapsed))
     (total-debt (+ (get borrowed-amount loan-data) (get accumulated-interest loan-data) interest-owed))
     (health-factor (calculate-health-factor (get collateral-amount loan-data) total-debt))
+    
+    ;; Calculate liquidator bonus
+    (liquidation-bonus (/ (* (get collateral-amount loan-data) liquidation-bonus-bps) u10000))
+    (total-collateral-to-liquidator (+ (get collateral-amount loan-data) liquidation-bonus))
   )
+    ;; Validate liquidation conditions
+    (asserts! (not (var-get protocol-paused)) err-protocol-paused)
     (asserts! (get active loan-data) err-loan-not-found)
     (asserts! (< health-factor liquidation-threshold) err-loan-healthy)
+    (asserts! (not (is-eq tx-sender (get borrower loan-data))) err-cannot-liquidate-self)
     
-    (try! (contract-call? .mock-usdcx 
-      transfer 
-      total-debt 
-      tx-sender 
-      (as-contract tx-sender) 
-      none
-    ))
-    
-    (try! (as-contract (stx-transfer? (get collateral-amount loan-data) tx-sender tx-sender)))
-    
+    ;; Update state before external calls
     (map-set loans
       { loan-id: loan-id }
       (merge loan-data { active: false })
@@ -454,14 +551,86 @@
     
     (var-set total-borrowed (- (var-get total-borrowed) (get borrowed-amount loan-data)))
     
+    ;; Execute transfers
+    (try! (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
+      transfer 
+      total-debt 
+      tx-sender 
+      (as-contract tx-sender) 
+      none
+    ))
+    
+    (try! (as-contract (stx-transfer? total-collateral-to-liquidator tx-sender tx-sender)))
+    
     (print {
       event: "liquidate",
       loan-id: loan-id,
       liquidator: tx-sender,
       borrower: (get borrower loan-data),
       debt-repaid: total-debt,
-      collateral-seized: (get collateral-amount loan-data),
+      collateral-seized: total-collateral-to-liquidator,
+      liquidation-bonus: liquidation-bonus,
       health-factor: health-factor,
+      block: block-height
+    })
+    
+    (ok true)
+  )
+)
+
+;; ============================================
+;; PUBLIC FUNCTIONS - PROTOCOL TREASURY
+;; ============================================
+
+;; Withdraw protocol revenue to treasury address
+(define-public (withdraw-protocol-revenue (amount uint))
+  (let (
+    (treasury (var-get protocol-treasury))
+    (current-revenue (var-get protocol-revenue-accumulated))
+  )
+    (asserts! (is-eq tx-sender treasury) err-not-authorized)
+    (asserts! (> amount u0) err-invalid-amount)
+    (asserts! (<= amount current-revenue) err-insufficient-balance)
+    
+    ;; Update state before external calls
+    (var-set protocol-revenue-accumulated (- current-revenue amount))
+    
+    ;; Execute transfer
+    (try! (as-contract (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx
+      transfer 
+      amount 
+      tx-sender 
+      treasury
+      none
+    )))
+    
+    (print {
+      event: "protocol-revenue-withdrawal",
+      treasury: treasury,
+      amount: amount,
+      remaining-revenue: (- current-revenue amount),
+      block: block-height
+    })
+    
+    (ok amount)
+  )
+)
+
+;; Update protocol treasury address
+(define-public (update-protocol-treasury (new-treasury principal))
+  (let (
+    (current-treasury (var-get protocol-treasury))
+  )
+    (asserts! (is-eq tx-sender current-treasury) err-not-authorized)
+    (asserts! (not (is-eq new-treasury zero-address)) err-invalid-address)
+    (asserts! (not (is-eq new-treasury current-treasury)) err-invalid-address)
+    
+    (var-set protocol-treasury new-treasury)
+    
+    (print {
+      event: "treasury-updated",
+      old-treasury: current-treasury,
+      new-treasury: new-treasury,
       block: block-height
     })
     
@@ -533,6 +702,7 @@
     total-deposits: (var-get total-deposits),
     total-borrowed: (var-get total-borrowed),
     total-interest-paid: (var-get total-interest-paid),
+    protocol-revenue: (var-get protocol-revenue-accumulated),
     utilization-rate: (if (> (var-get total-deposits) u0)
                         (/ (* (var-get total-borrowed) u10000) (var-get total-deposits))
                         u0),
@@ -540,7 +710,47 @@
     total-lenders: (var-get total-lenders),
     total-borrowers: (var-get total-borrowers),
     active-users: (+ (var-get total-lenders) (var-get total-borrowers)),
-    volume-24h: (var-get volume-24h)
+    volume-24h: (var-get volume-24h),
+    paused: (var-get protocol-paused),
+    supply-cap: (var-get supply-cap),
+    borrow-cap: (var-get borrow-cap)
+  })
+)
+
+;; Get current effective lender APY (based on utilization)
+(define-read-only (get-effective-lender-apy)
+  (let (
+    (utilization-bps (get-utilization-rate))
+    (effective-apy-bps (/ (* annual-interest-rate-bps utilization-bps) u10000))
+  )
+    (ok effective-apy-bps)
+  )
+)
+
+;; Get protocol revenue
+(define-read-only (get-protocol-revenue)
+  (ok (var-get protocol-revenue-accumulated))
+)
+
+;; Get protocol treasury address
+(define-read-only (get-protocol-treasury)
+  (ok (var-get protocol-treasury))
+)
+
+;; Check if protocol is paused
+(define-read-only (is-protocol-paused)
+  (ok (var-get protocol-paused))
+)
+
+;; Get supply and borrow caps
+(define-read-only (get-caps)
+  (ok {
+    supply-cap: (var-get supply-cap),
+    borrow-cap: (var-get borrow-cap),
+    current-supply: (var-get total-deposits),
+    current-borrowed: (var-get total-borrowed),
+    supply-available: (- (var-get supply-cap) (var-get total-deposits)),
+    borrow-available: (- (var-get borrow-cap) (var-get total-borrowed))
   })
 )
 
@@ -572,4 +782,3 @@
     total-liquidations: u0  ;; Can be tracked if needed
   })
 )
-

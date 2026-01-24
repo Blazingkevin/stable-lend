@@ -7,33 +7,33 @@ export const ASSETS: Asset[] = [
     symbol: 'USDCx',
     name: 'Bridged USDC',
     price: 1.00,
-    supplyApy: 8.42,
-    borrowApy: 12.15,
-    totalSupplied: 2450000,
-    totalBorrowed: 1620000,
-    utilization: 66.1,
+    supplyApy: 0, // Will be populated from protocol stats
+    borrowApy: 8.0,
+    totalSupplied: 0, // Will be populated from protocol stats
+    totalBorrowed: 0, // Will be populated from protocol stats
+    utilization: 0, // Will be populated from protocol stats
     icon: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png'
   },
   {
     symbol: 'STX',
     name: 'Stacks',
-    price: 1.85,
-    supplyApy: 2.15,
-    borrowApy: 4.80,
-    totalSupplied: 15400000,
-    totalBorrowed: 8200000,
-    utilization: 53.2,
+    price: 0, // Dynamic - fetch from oracle
+    supplyApy: 0,
+    borrowApy: 0,
+    totalSupplied: 0,
+    totalBorrowed: 0,
+    utilization: 0,
     icon: 'https://cryptologos.cc/logos/stacks-stx-logo.png'
   },
   {
     symbol: 'sBTC',
     name: 'Stacks Bitcoin',
     price: 42500,
-    supplyApy: 1.80,
-    borrowApy: 3.50,
-    totalSupplied: 125,
-    totalBorrowed: 45,
-    utilization: 36.0,
+    supplyApy: 0,
+    borrowApy: 0,
+    totalSupplied: 0,
+    totalBorrowed: 0,
+    utilization: 0,
     icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png'
   }
 ];

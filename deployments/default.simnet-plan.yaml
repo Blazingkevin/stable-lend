@@ -64,18 +64,8 @@ plan:
     - id: 0
       transactions:
         - emulated-contract-publish:
-            contract-name: sip-010-trait
+            contract-name: stablelend-pool-v2
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/sip-010-trait.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: mock-usdcx
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/mock-usdcx.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: lending-pool
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/lending-pool.clar
+            path: contracts/stablelend-pool-v2.clar
             clarity-version: 2
       epoch: "3.3"

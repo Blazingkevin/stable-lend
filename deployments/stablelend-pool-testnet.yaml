@@ -1,0 +1,16 @@
+---
+id: 0
+name: StableLend Pool Testnet Deployment
+network: testnet
+stacks-node: "https://api.testnet.hiro.so"
+bitcoin-node: "http://localhost:18443"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: stablelend-pool
+            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            cost: 50000
+            path: contracts/stablelend-pool.clar
+            clarity-version: 2

@@ -1,24 +1,17 @@
 [project]
 name = 'stablelend'
-description = ''
+description = 'First native USDCx lending protocol on Stacks. The Global Yield Layer for Bitcoin.'
 authors = []
 telemetry = true
 cache_dir = './.cache'
 requirements = []
-[contracts.lending-pool]
-path = 'contracts/lending-pool.clar'
+
+# Production contract
+[contracts.stablelend-pool-v2]
+path = 'contracts/stablelend-pool-v2.clar'
 clarity_version = 2
 epoch = 'latest'
 
-[contracts.sip-010-trait]
-path = 'contracts/sip-010-trait.clar'
-clarity_version = 2
-epoch = 'latest'
-
-[contracts.mock-usdcx]
-path = 'contracts/mock-usdcx.clar'
-clarity_version = 2
-epoch = 'latest'
 [repl.analysis]
 passes = [
     'check_checker',

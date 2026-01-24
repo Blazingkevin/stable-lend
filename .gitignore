@@ -12,8 +12,4 @@ costs-reports.json
 node_modules
 
 # Local documentation
-UI_CONTRACT_ANALYSIS.md
-TESTNET_DEPLOYMENT_READINESS.md
-DEPLOYMENT_CHECKLIST.md
-TESTNET_DEPLOYMENT_PLAN.md
-BRIDGE_QUICK_START.md
+docs/
