@@ -4,6 +4,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 
 const learnMoreContent = `
 # StableLend: The Complete DeFi Protocol for Bitcoin
@@ -353,41 +354,41 @@ export default function LearnMorePage() {
   return (
     <div className="min-h-screen bg-[#020617] text-gray-100">
       {/* Testnet Banner */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500/95 backdrop-blur-sm border-b border-yellow-600/30 py-2 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-sm">
-          <span className="w-2 h-2 rounded-full bg-yellow-900 animate-pulse" />
-          <span className="font-bold text-yellow-900">TESTNET MODE</span>
-          <span className="text-yellow-900/80">•</span>
-          <span className="text-yellow-900/80">Using Stacks Testnet - Test tokens only</span>
+      <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500/95 backdrop-blur-sm border-b border-yellow-600/30 py-1.5 lg:py-2 px-3 lg:px-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-1.5 lg:gap-2 text-xs lg:text-sm">
+          <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-yellow-900 animate-pulse" />
+          <span className="font-bold text-yellow-900">TESTNET</span>
+          <span className="text-yellow-900/80 hidden sm:inline">•</span>
+          <span className="text-yellow-900/80 hidden sm:inline">Using Stacks Testnet - Test tokens only</span>
         </div>
       </div>
 
-      {/* Header */}
-      <header className="fixed top-10 left-0 right-0 z-40 bg-[#020617]/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-orange-500/20">
-              S
+      {/* Header - Matching Landing Page */}
+      <nav className="fixed top-8 lg:top-10 left-0 right-0 z-40 bg-[#030712]/80 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 lg:py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-orange-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <ShieldCheck className="text-white w-5 h-5 lg:w-6 lg:h-6" />
             </div>
-            <span className="font-black text-2xl tracking-tight text-white">StableLend</span>
+            <span className="text-lg lg:text-xl font-bold tracking-tight text-white">StableLend</span>
           </Link>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4">
             <Link 
               href="/"
-              className="px-4 py-2 text-slate-400 hover:text-white transition-colors font-medium"
+              className="hidden sm:block px-3 lg:px-4 py-2 text-slate-400 hover:text-white transition-colors font-medium text-sm"
             >
-              ← Back to Home
+              ← Back
             </Link>
             <Link 
               href="/?app=true"
-              className="px-6 py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 transition-all hover:scale-105"
+              className="px-4 lg:px-6 py-2 lg:py-2.5 bg-orange-500 hover:bg-orange-400 text-white rounded-lg lg:rounded-xl font-bold text-xs lg:text-sm transition-all hover:scale-105"
             >
               Launch App
             </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Background */}
       <div className="fixed inset-0 -z-10">
@@ -396,8 +397,8 @@ export default function LearnMorePage() {
       </div>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-6 pt-40 pb-24">
-        <div className="prose prose-invert prose-lg max-w-none">
+      <main className="max-w-4xl mx-auto px-4 lg:px-6 pt-32 lg:pt-40 pb-16 lg:pb-24">
+        <div className="prose prose-invert prose-sm lg:prose-lg max-w-none">
           <ReactMarkdown 
             remarkPlugins={[remarkGfm]}
             components={customComponents as any}
@@ -407,15 +408,15 @@ export default function LearnMorePage() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-24 text-center">
-          <div className="inline-block bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-3xl p-12 border border-orange-500/20">
-            <h2 className="text-4xl font-black text-white mb-4">Ready to Get Started?</h2>
-            <p className="text-xl text-slate-400 mb-8 max-w-md mx-auto">
+        <div className="mt-16 lg:mt-24 text-center">
+          <div className="inline-block bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-2xl lg:rounded-3xl p-8 lg:p-12 border border-orange-500/20">
+            <h2 className="text-2xl lg:text-4xl font-black text-white mb-3 lg:mb-4">Ready to Get Started?</h2>
+            <p className="text-base lg:text-xl text-slate-400 mb-6 lg:mb-8 max-w-md mx-auto">
               Experience the future of Bitcoin DeFi. Lend, borrow, and earn with USDCx on Stacks.
             </p>
             <Link
               href="/?app=true"
-              className="inline-flex items-center gap-2 px-10 py-5 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl font-black text-xl shadow-[0_20px_50px_rgba(249,115,22,0.3)] transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 px-8 lg:px-10 py-4 lg:py-5 bg-orange-500 hover:bg-orange-400 text-white rounded-xl lg:rounded-2xl font-black text-lg lg:text-xl shadow-[0_20px_50px_rgba(249,115,22,0.3)] transition-all hover:scale-105"
             >
               Launch StableLend
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -426,20 +427,22 @@ export default function LearnMorePage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-600 rounded-lg flex items-center justify-center font-bold text-white">S</div>
-            <span className="font-bold text-xl tracking-tight text-white">StableLend</span>
+      {/* Footer - Matching Landing Page */}
+      <footer className="border-t border-slate-800 bg-slate-950 py-8 lg:py-12 px-4 lg:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 lg:gap-8">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-orange-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <ShieldCheck className="text-white w-5 h-5 lg:w-6 lg:h-6" />
+            </div>
+            <span className="font-bold text-lg lg:text-xl tracking-tight text-white">StableLend</span>
           </div>
           
-          <div className="flex gap-8 text-slate-400 text-sm">
+          <div className="flex gap-6 lg:gap-8 text-slate-400 text-sm">
             <Link href="/?app=true" className="hover:text-white transition-colors">Dashboard</Link>
-            <Link href="/learn" className="hover:text-white transition-colors text-orange-400">Learn More</Link>
+            <Link href="/learn" className="hover:text-white transition-colors text-orange-400">Learn</Link>
           </div>
 
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-500 text-xs lg:text-sm text-center">
             © {new Date().getFullYear()} StableLend. Built for the Bitcoin Renaissance.
           </p>
         </div>
