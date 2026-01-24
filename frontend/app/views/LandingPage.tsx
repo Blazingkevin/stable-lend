@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 import { getProtocolStats } from '@/lib/contract-calls';
 import { CONTRACTS, NETWORK } from '@/lib/constants';
 
@@ -61,9 +62,27 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           <span className="text-yellow-900/80">Using Stacks Testnet - Test tokens only</span>
         </div>
       </div>
+
+      {/* Navigation Header */}
+      <nav className="fixed top-10 left-0 right-0 z-40 bg-[#030712]/80 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <ShieldCheck className="text-white w-6 h-6" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white">StableLend</span>
+          </div>
+          <button 
+            onClick={onEnterApp}
+            className="px-6 py-2.5 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-bold text-sm transition-all hover:scale-105"
+          >
+            Launch App
+          </button>
+        </div>
+      </nav>
       
       {/* Hero Section */}
-      <section className="relative pt-32 pb-40 px-6 overflow-hidden" style={{ marginTop: '2.5rem' }}>
+      <section className="relative pt-48 pb-40 px-6 overflow-hidden">
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-bold mb-8 uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(249,115,22,0.1)] animate-in fade-in duration-500">
              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
@@ -87,14 +106,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               onClick={onEnterApp}
               className="w-full sm:w-auto px-12 py-5 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl font-black text-xl shadow-[0_20px_50px_rgba(249,115,22,0.3)] transition-all hover:scale-105 active:scale-95"
             >
-              Start Lending
-            </button>
-            <button 
-              onClick={onEnterApp}
-              className="w-full sm:w-auto px-12 py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold text-xl transition-all border border-white/10 backdrop-blur-xl group"
-            >
-              View Markets
-              <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
+              Launch App
             </button>
             <Link 
               href="/learn"
@@ -312,8 +324,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       {/* Footer */}
       <footer className="border-t border-slate-800 bg-slate-950 py-12 px-6 mt-20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-600 rounded-lg flex items-center justify-center font-bold text-white">S</div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <ShieldCheck className="text-white w-6 h-6" />
+            </div>
             <span className="font-bold text-xl tracking-tight text-white">StableLend</span>
           </div>
           
