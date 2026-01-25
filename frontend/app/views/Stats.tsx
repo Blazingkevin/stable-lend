@@ -76,8 +76,9 @@ const Stats: React.FC<StatsProps> = ({ protocolStats, currentAPY, stxPrice }) =>
   // Calculate available liquidity
   const availableLiquidity = totalDepositsUSDCx - totalBorrowedUSDCx;
 
-  // Calculate interest earned by lenders (total interest - protocol fee)
-  const lenderInterestEarned = totalInterestPaid * 0.9; // 90% goes to lenders
+  // Calculate interest earned by lenders (total interest minus protocol fee)
+  // This ensures the numbers always add up exactly
+  const lenderInterestEarned = totalInterestPaid - protocolRevenue;
 
   // STX Price display
   const stxPriceUSD = stxPrice ? Number(stxPrice) / 1_000000 : 0;
