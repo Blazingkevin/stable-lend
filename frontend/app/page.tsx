@@ -27,6 +27,7 @@ import {
   type LoanDetails,
   type ProtocolStats
 } from '@/lib/contract-calls';
+import { CONTRACTS, NETWORK } from '@/lib/constants';
 
 // Inner component that uses useSearchParams
 function HomeContent() {
@@ -72,6 +73,33 @@ function HomeContent() {
     };
 
     checkConnection();
+  }, []);
+
+  // Fetch protocol stats on initial load (regardless of wallet connection)
+  useEffect(() => {
+    const fetchPublicStats = async () => {
+      try {
+        // Use contract address as dummy sender for read-only calls
+        const dummyAddress = CONTRACTS[NETWORK].lendingPool.split('.')[0];
+        
+        const stats = await getProtocolStats(dummyAddress);
+        setProtocolStats(stats);
+        
+        const apy = await getCurrentAPY(dummyAddress);
+        setCurrentAPY(apy);
+        
+        const price = await getSTXPriceUSD(dummyAddress);
+        setStxPrice(price);
+      } catch (error) {
+        console.error('Error fetching public stats:', error);
+      }
+    };
+
+    fetchPublicStats();
+    
+    // Auto-refresh public stats every 30 seconds for non-connected users
+    const intervalId = setInterval(fetchPublicStats, 30000);
+    return () => clearInterval(intervalId);
   }, []);
 
   // Auto-refresh data every 30 seconds to show accruing interest
