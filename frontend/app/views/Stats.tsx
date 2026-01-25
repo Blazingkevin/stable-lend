@@ -178,7 +178,7 @@ const Stats: React.FC<StatsProps> = ({ protocolStats, currentAPY, stxPrice }) =>
             <p className="text-sm text-gray-400 font-semibold">Total Interest Paid</p>
           </div>
           <h3 className="text-2xl font-bold text-white mono mb-1">
-            ${totalInterestPaid.toFixed(2)}
+            ${totalInterestPaid.toFixed(6)}
           </h3>
           <p className="text-xs text-emerald-400">
             {totalInterestPaid.toFixed(6)} USDCx total
@@ -193,10 +193,10 @@ const Stats: React.FC<StatsProps> = ({ protocolStats, currentAPY, stxPrice }) =>
             <p className="text-sm text-gray-400 font-semibold">Protocol Revenue</p>
           </div>
           <h3 className="text-2xl font-bold text-white mono mb-1">
-            ${protocolRevenue.toFixed(2)}
+            ${protocolRevenue.toFixed(6)}
           </h3>
           <p className="text-xs text-cyan-400">
-            10% service fee collected
+            {protocolRevenue.toFixed(6)} USDCx (10% fee)
           </p>
         </div>
 
@@ -271,10 +271,10 @@ const Stats: React.FC<StatsProps> = ({ protocolStats, currentAPY, stxPrice }) =>
             <p className="text-sm text-gray-400 font-semibold">Interest to Lenders</p>
           </div>
           <h3 className="text-2xl font-bold text-white mono mb-1">
-            ${lenderInterestEarned.toFixed(2)}
+            ${lenderInterestEarned.toFixed(6)}
           </h3>
           <p className="text-xs text-lime-400">
-            90% of interest paid
+            {lenderInterestEarned.toFixed(6)} USDCx (90% share)
           </p>
         </div>
       </div>
